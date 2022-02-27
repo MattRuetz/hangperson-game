@@ -8,14 +8,21 @@ const finalMessage = document.getElementById('final-message');
 // Figure parts
 const figureParts = document.querySelectorAll('.figure-part');
 
-//URL to fetch a single word from random word API, with swear words not allowed
-const apiUrl = `https://random-word-api.herokuapp.com/word?number=20&swear=0`;
+const numWordsToFetch = 20;
 
+//URL to fetch a single word from random word API, with swear words not allowed
+const apiUrl = `https://random-word-api.herokuapp.com/word?number=${numWordsToFetch}&swear=0`;
+
+// The max number of characters for a valid word
 const maxWordLength = 8;
 
 let potentialWords = [];
 let selectedWord = '';
+let correctLetters = [];
+let wrongLetters = [];
 
+// Pull 20 random word from API, show one that is less than [maxWordLength] long
+// Re-fetch from API if none of the words satisfy character limit
 const getWord = async () => {
     const result = await fetch(apiUrl);
     potentialWords = await result.json();
@@ -29,15 +36,12 @@ const getWord = async () => {
         selectedWord =
             validWords[Math.floor(Math.random()) * validWords.length];
     }
-
+    //Alter DOM to show correct letter guesses
     displayWord();
 };
 
-let correctLetters = [];
-let wrongLetters = [];
-
+// Add elements to DOM to show correct letter guesses in their position
 const displayWord = () => {
-    console.log(selectedWord);
     wordEl.innerHTML = `
     ${selectedWord
         .split('')
@@ -50,15 +54,16 @@ const displayWord = () => {
         )
         .join('')}`;
     const innerWord = wordEl.innerText.replace(/\n/g, '');
-    console.log('does ' + innerWord + '===' + selectedWord);
+    // Check if the word is fully revealed..
     if (innerWord === selectedWord) {
+        // if so, display vicory message in popup
         const descriptor = potentialWords[Math.floor(Math.random() * 20)];
-        finalMessage.innerText = `Congrats! You won! 🏆\n ${descriptor.toUpperCase()}!!!`;
+        finalMessage.innerText = `Congrats! You won! 🏆\n ${selectedWord}!!!`;
         popup.style.display = 'flex'; //instead of none...
     }
-    // console.log(wordEl.textContent, innerWord);
 };
 
+// Show brief popup when user repeats a letter entry
 const showNotification = () => {
     notification.classList.add('show');
 
@@ -67,6 +72,8 @@ const showNotification = () => {
     }, 2000);
 };
 
+// On wrong guess, update DOM elements showing wrong letters
+// AND add a body part to the stick figure SVG for each new wrong letter
 const updateWrongLettersEl = () => {
     // Display wrong letter guesses
     wrongLettersEl.innerHTML = `
@@ -75,8 +82,8 @@ const updateWrongLettersEl = () => {
 
     figureParts.forEach((part, index) => {
         const errors = wrongLetters.length;
-
         if (index < errors) {
+            // change from 'none' to 'block' to show pert
             part.style.display = 'block';
         } else {
             part.style.display = 'none';
@@ -86,8 +93,7 @@ const updateWrongLettersEl = () => {
     // Check if user has lost..
     if (wrongLetters.length === figureParts.length) {
         // Display loser message
-        const descriptor = potentialWords[Math.floor(Math.random() * 20)];
-        finalMessage.innerText = `You lost! \n...${descriptor} 😞`;
+        finalMessage.innerText = `You lost! \nThe word was: ${selectedWord} 😞`;
         popup.style.display = 'flex';
     }
 };
@@ -108,6 +114,8 @@ window.addEventListener('keydown', (e) => {
             if (!wrongLetters.includes(letter)) {
                 wrongLetters.push(letter);
                 updateWrongLettersEl();
+            } else {
+                showNotification();
             }
         }
     }
@@ -124,4 +132,5 @@ playAgainButton.addEventListener('click', () => {
     popup.style.display = 'none';
 });
 
+//On load - get first word
 getWord();
